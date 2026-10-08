@@ -103,6 +103,8 @@ class LianjiaDealsScraper(BaseScraper):
     schedule = "0 10 * * 1"
     enabled = True
     required_fields = ("city", "district", "period")
+    # 独立工具扩展: 运行前可设置为 [(代码, 中文名), ...]；为 None 时用默认 4 个一线城市
+    cities: list[tuple[str, str]] | None = None
 
     # ---- fetch --------------------------------------------------------
 
@@ -132,7 +134,7 @@ class LianjiaDealsScraper(BaseScraper):
             r.raise_for_status()
             return r.text
 
-        for code, name in LIANJIA_CITIES:
+        for code, name in (self.cities or LIANJIA_CITIES):
             url = _city_url(code)
             try:
                 html = _get(url)
