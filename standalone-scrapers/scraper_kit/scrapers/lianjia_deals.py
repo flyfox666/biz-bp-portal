@@ -356,6 +356,9 @@ def _extract_li(li: Any, *, city: str, period: str) -> list[dict[str, Any]]:
     unit_price = _to_int_yuan_sqm(li.select_one(".unitPrice"))
     follow_count = _follow_count(li.select_one(".followInfo"))
 
+    info = _parse_house_info(li.select_one(".houseInfo"))
+    tags = [t.get_text(strip=True) for t in li.select(".tag span") if t.get_text(strip=True)]
+
     row = {
         "city": city,
         "district": district,
@@ -367,9 +370,49 @@ def _extract_li(li: Any, *, city: str, period: str) -> list[dict[str, Any]]:
         "deals_count": follow_count,  # alias of follow_count for DBT compat
         "follow_count": follow_count,
         "title": title,
+        **info,
+        "tags": "、".join(tags) or None,
         "source": SOURCE_ID,
     }
     return [row]
+
+
+_LAYOUT_RE = re.compile(r"^\d+室\d*厅?|^\d+房间|^\d+室")
+_AREA_RE = re.compile(r"([\d.]+)\s*平")
+_YEAR_RE = re.compile(r"(\d{4})\s*年")
+_BUILDING_TYPES = ("板塔结合", "板楼", "塔楼", "平房")
+_DECORATIONS = ("精装", "简装", "毛坯", "其他")
+
+
+def _parse_house_info(node: Any) -> dict[str, Any]:
+    """解析 ``.houseInfo`` 行，如 "2室1厅 | 89平米 | 南 北 | 精装 | 中楼层(共18层) | 2010年 | 板楼"。
+
+    不依赖各字段顺序，逐段按特征归类；识别不了的段忽略，缺失字段为 None。
+    """
+    out: dict[str, Any] = {
+        "layout": None, "area_sqm": None, "orientation": None, "decoration": None,
+        "floor_desc": None, "build_year": None, "building_type": None,
+    }
+    if node is None:
+        return out
+    for seg in (x.strip() for x in node.get_text(" ", strip=True).split("|")):
+        if not seg:
+            continue
+        if _LAYOUT_RE.match(seg):
+            out["layout"] = seg.replace(" ", "")
+        elif "平" in seg and _AREA_RE.search(seg):
+            out["area_sqm"] = float(_AREA_RE.search(seg).group(1))
+        elif "层" in seg:
+            out["floor_desc"] = seg
+        elif _YEAR_RE.search(seg):
+            out["build_year"] = int(_YEAR_RE.search(seg).group(1))
+        elif seg in _BUILDING_TYPES:
+            out["building_type"] = seg
+        elif seg in _DECORATIONS:
+            out["decoration"] = seg
+        elif seg and all(ch in "东南西北 " for ch in seg):
+            out["orientation"] = " ".join(seg.split())
+    return out
 
 
 _UNIT_PRICE_RE = re.compile(r"([\d,]+)\s*元/平")

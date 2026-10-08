@@ -14,7 +14,10 @@ COLUMNS = {
     "lianjia_deals": ("链家二手房挂牌", [
         ("city", "城市"), ("district", "区域"), ("xiaoqu", "小区"), ("period", "期间"),
         ("unit_price_yuan_sqm", "挂牌单价(元/平方米)"), ("total_price_wan", "挂牌总价(万元)"),
-        ("follow_count", "关注人数(人)"), ("title", "房源标题"),
+        ("follow_count", "关注人数(人)"), ("layout", "户型"), ("area_sqm", "面积(平方米)"),
+        ("orientation", "朝向"), ("decoration", "装修"), ("floor_desc", "楼层"),
+        ("build_year", "建成年份"), ("building_type", "楼型"), ("tags", "房源标签"),
+        ("title", "房源标题"),
         ("source", "数据来源"), ("is_fallback", "是否兜底数据"),
     ]),
     "nbs_house_price": ("统计局70城房价指数", [
